@@ -1,21 +1,29 @@
+// controllers/authController.js
 
-const bcrypt = require('bcryptjs'); 
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { createUser, findUserByEmail } = require('../models/userModel');
+const { validationResult } = require('express-validator');
+const { findUserByEmail, createUser } = require('../models/userModel');
 
 // Registration Controller
 const register = async (req, res) => {
-  const { name, email, password } = req.body;
-
-  // Simple validation
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required.' });
+  // Handle validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.log(`Validation errors: ${JSON.stringify(errors.array())}`);
+    return res.status(400).json({ errors: errors.array() });
   }
+  
+  let { name, email, password } = req.body;
+
+  // Normalize email to lowercase
+  email = email.toLowerCase();
 
   try {
     // Check if user already exists
     const existingUser = await findUserByEmail(email);
     if (existingUser) {
+      console.warn(`Registration attempt with existing email: ${email}`);
       return res.status(400).json({ message: 'User already exists.' });
     }
 
@@ -41,30 +49,37 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Registration Error:', error); // Enhanced logging
-    res.status(500).json({ message: `Server error: ${error.message}` }); 
+    console.error('Registration Error:', error);
+    res.status(500).json({ message: `Server error: ${error.message}` });
   }
 };
 
-// Login Controller (To be implemented)
+// Login Controller
 const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  // Simple validation
-  if (!email || !password) {
-    return res.status(400).json({ message: 'All fields are required.' });
+  // Handle validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.log(`Validation errors: ${JSON.stringify(errors.array())}`);
+    return res.status(400).json({ errors: errors.array() });
   }
 
+  let { email, password } = req.body;
+
+  // Normalize email to lowercase
+  email = email.toLowerCase();
+
   try {
-    // Check if user exists
+    // Find user by email
     const user = await findUserByEmail(email);
     if (!user) {
+      console.warn(`Login attempt with unregistered email: ${email}`);
       return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
     // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.warn(`Invalid password attempt for email: ${email}`);
       return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
@@ -73,6 +88,7 @@ const login = async (req, res) => {
       expiresIn: '1h',
     });
 
+    // Respond with token and user info
     res.status(200).json({
       message: 'Logged in successfully.',
       token,
@@ -83,8 +99,8 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login Error:', error); // Enhanced logging
-    res.status(500).json({ message: `Server error: ${error.message}` }); 
+    console.error('Login Error:', error);
+    res.status(500).json({ message: `Server error: ${error.message}` });
   }
 };
 
