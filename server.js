@@ -22,6 +22,15 @@ const razorpayRoutes = require("./routes/razorpayRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const shiprocketRoutes = require("./routes/shiprocketRoutes");
 const userRoutes = require("./routes/userRoutes");
+// server.js
+
+const express = require('express');
+const dotenv = require('dotenv');
+const morgan = require('morgan'); // HTTP request logger
+const authRoutes = require('./routes/authRoutes');
+const { errorHandler } = require('./middleware/errorMiddleware');
+
+dotenv.config(); // Initialize dotenv first
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -88,6 +97,27 @@ app.use("/api/users", userRoutes);
 app.get("/", (req, res) => {
   res.send("Welcome to the E-commerce API");
 });
+
+// Start the Server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+// HTTP request logger
+app.use(morgan('dev'));
+
+// Middleware to parse JSON
+app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
+
+// Root Endpoint
+app.get('/', (req, res) => {
+  res.send('Welcome to the E-commerce Auth API');
+});
+
+// Error Handling Middleware
+app.use(errorHandler);
 
 // Start the Server
 app.listen(PORT, () => {
