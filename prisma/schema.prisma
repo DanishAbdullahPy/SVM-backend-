@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id             String         @id @default(uuid())
+  name           String
+  price          Float
+  indications    String
+  description    String
+  inStock        Boolean
+  category       Category       @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  precautions    String[]
+  punchline      String
+  quantity       String
+  dosage         String
+  imageUrls      String[]
+  featured       Boolean        @default(false)
+  limitedOffer   Boolean        @default(false)
+  discount       Float? // Store discount percentage (e.g., 10.0 for 10%)
+  discountExpiry DateTime?
+  cartItems      CartItem[]
+  wishlistItems  WishlistItem[]
+  ratings        Rating[]
+
+  OrderItem OrderItem[]
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  name            String
+  email           String    @unique
+  password        String
+  mobile          String?
+  addresses       Address[]
+  cart            Cart?     @relation()
+  wishlist        Wishlist?
+  wishlistId      Int?
+  ratings         Rating[]
+  resetOtp        String?
+  resetOtpExpires DateTime?
+  role            Role      @default(USER)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  Order Order[]
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int
+  feedback  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Wishlist {
+  id        Int            @id @default(autoincrement())
+  userId    Int            @unique
+  user      User           @relation(fields: [userId], references: [id])
+  items     WishlistItem[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model WishlistItem {
+  id         Int      @id @default(autoincrement())
+  wishlistId Int
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  addedAt    DateTime @default(now())
+}
+
+enum AddressType {
+  HOME
+  OFFICE
+  OTHER
+}
+
+model Address {
+  id        Int         @id @default(autoincrement())
+  type      AddressType @default(HOME)
+  area      String
+  city      String
+  state     String
+  zipCode   String
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // New Relation: An address can be associated with multiple orders
+  orders Order[]
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  orderId   String      @unique
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id])
+  receipt   String
+  amount    Int
+  currency  String
+  status    String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  items     OrderItem[]
+
+  shiprocketOrderId    String?
+  shiprocketShipmentId String?
+
+  // Make shippingAddressId optional
+  shippingAddressId Int?
+  shippingAddress   Address? @relation(fields: [shippingAddressId], references: [id])
+}
